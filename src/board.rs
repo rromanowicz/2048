@@ -2,6 +2,14 @@ use rand::{self, Rng};
 use std::i16;
 
 #[derive(Debug)]
+pub enum Direction {
+    UP,
+    DOWN,
+    RIGHT,
+    LEFT,
+}
+
+#[derive(Debug)]
 pub struct Board {
     pub items: Vec<Vec<i16>>,
     modified: bool,
@@ -45,7 +53,7 @@ impl Board {
             loop {
                 let x = rand::thread_rng().gen_range(0..3);
                 let y = rand::thread_rng().gen_range(0..3);
-                let mut item = if self.items[x][y] == 0 {
+                if self.items[x][y] == 0 {
                     let rng = rand::thread_rng().gen_range(0..100);
                     self.items[x][y] = [2, 4][if rng < 80 { 0 } else { 1 }];
                     break;
@@ -68,86 +76,62 @@ impl Board {
         return matrix;
     }
 
-    pub fn shift_right(&mut self) {
-        self.modified = self
-            .items
-            .iter_mut()
-            .map(|mut row| to_right(&mut row))
-            .collect::<Vec<bool>>()
-            .contains(&true);
+    pub fn shift(&mut self, direction: Direction) {
+        match direction {
+            Direction::UP => {
+                let transposed = &mut self.transposed();
+                self.modified = shift_rows(transposed, &to_left);
+                self.items = transposed.transposed().items;
+                self.add_random(false);
+            }
+            Direction::DOWN => {
+                let transposed = &mut self.transposed();
+                self.modified = shift_rows(transposed, &to_right);
+                self.items = transposed.transposed().items;
+                self.add_random(false);
+            }
+            Direction::RIGHT => {
+                self.modified = shift_rows(self, &to_right);
+                self.add_random(false);
+            }
+            Direction::LEFT => {
+                self.modified = shift_rows(self, &to_left);
 
-        self.add_random(false);
+                self.add_random(false);
+            }
+        };
     }
+}
 
-    pub fn shift_left(&mut self) {
-        self.modified = self
-            .items
-            .iter_mut()
-            .map(|mut row| to_left(&mut row))
-            .collect::<Vec<bool>>()
-            .contains(&true);
+fn shift_rows(board: &mut Board, f: &dyn Fn(&mut [i16]) -> bool) -> bool {
+    return board
+        .items
+        .iter_mut()
+        .map(|it| f(it))
+        .collect::<Vec<bool>>()
+        .contains(&true);
+}
 
-        self.add_random(false);
-    }
-
-    pub fn shift_up(&mut self) {
-        let transposed = &mut self.transposed();
-        self.modified = transposed
-            .items
-            .iter_mut()
-            .map(|mut row| to_left(&mut row))
-            .collect::<Vec<bool>>()
-            .contains(&true);
-        self.items = transposed.transposed().items;
-        self.add_random(false);
-    }
-
-    pub fn shift_down(&mut self) {
-        let transposed = &mut self.transposed();
-        self.modified = transposed
-            .items
-            .iter_mut()
-            .map(|mut row| to_right(&mut row))
-            .collect::<Vec<bool>>()
-            .contains(&true);
-        self.items = transposed.transposed().items;
-        self.add_random(false);
-    }
-
-    pub fn print(&mut self) {
-        for row in self.items.iter() {
-            println!("{:?}", row);
-        }
-        println!();
-    }
+fn align_row(row: &mut [i16], f: &dyn Fn(&mut [i16]) -> bool) -> bool {
+    return f(row);
 }
 
 fn to_right(row: &mut [i16]) -> bool {
-    let mut modified = false;
-    if align_to_right(row) {
-        modified = true;
-    }
-    if join_pairs(row) {
-        modified = true;
-    }
-    if align_to_right(row) {
-        modified = true;
-    }
-    return modified;
+    return [
+        align_row(row, &align_to_right),
+        align_row(row, &join_pairs),
+        align_row(row, &align_to_right),
+    ]
+    .contains(&true);
 }
 
 fn to_left(row: &mut [i16]) -> bool {
-    let mut modified = false;
-    if align_to_left(row) {
-        modified = true;
-    }
-    if join_pairs_left(row) {
-        modified = true;
-    }
-    if align_to_left(row) {
-        modified = true;
-    }
-    return modified;
+    return [
+        align_row(row, &align_to_left),
+        align_row(row, &join_pairs_left),
+        align_row(row, &align_to_left),
+    ]
+    .contains(&true);
 }
 
 fn align_to_right(row: &mut [i16]) -> bool {
@@ -200,7 +184,7 @@ fn join_pairs(row: &mut [i16]) -> bool {
 fn join_pairs_left(row: &mut [i16]) -> bool {
     let mut modified = false;
     for i in 0..row.len() {
-        if i == row.len() {
+        if i == row.len() - 1 {
             break;
         }
         if row[i] != 0 && row[i] == row[i + 1] {

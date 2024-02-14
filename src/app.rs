@@ -2,6 +2,7 @@
 
 use std::{io, usize};
 
+use color_eyre::owo_colors::OwoColorize;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
@@ -11,7 +12,7 @@ use rand::{random, Fill, Rng};
 use ratatui::layout::Layout;
 use ratatui::{prelude::*, style::palette::tailwind, widgets::*};
 
-use crate::board::{self, Board};
+use crate::board::{self, Board, Direction};
 
 pub struct App {
     board: Board,
@@ -34,10 +35,10 @@ impl App {
                     use KeyCode::*;
                     match key.code {
                         Char('q') => return Ok(()),
-                        Char('l') | Right => self.board.shift_right(),
-                        Char('h') | Left => self.board.shift_left(),
-                        Char('k') | Up => self.board.shift_up(),
-                        Char('j') | Down => self.board.shift_down(),
+                        Char('l') | Right => self.board.shift(Direction::RIGHT),
+                        Char('h') | Left => self.board.shift(Direction::LEFT),
+                        Char('k') | Up => self.board.shift(Direction::UP),
+                        Char('j') | Down => self.board.shift(Direction::DOWN),
                         _ => {}
                     }
                 }
@@ -49,10 +50,10 @@ impl App {
         let square_size = 40;
         let h_borders = Layout::horizontal([
             Constraint::Fill(1),
-            Constraint::Percentage(square_size),
+            Constraint::Length(square_size),
             Constraint::Fill(1),
         ]);
-        let v_borders = Layout::vertical([Constraint::Percentage(square_size)]);
+        let v_borders = Layout::vertical([Constraint::Length(square_size / 2)]);
         let [left, h_middle, right] = h_borders.areas(terminal.size()?);
         let [v_middle] = v_borders.areas(h_middle);
 
@@ -90,15 +91,32 @@ impl Widget for &mut App {
                     value.to_string()
                 };
                 Paragraph::new(text)
-                    .block(Block::default().borders(Borders::ALL).padding(Padding::new(
-                        0,
-                        0,
-                        row_area[j].height / 2 - 1,
-                        0,
-                    )))
+                    .block(
+                        Block::default()
+                            .borders(Borders::ALL)
+                            .fg(get_color(value))
+                            .padding(Padding::new(0, 0, row_area[j].height / 2 - 1, 0)),
+                    )
                     .centered()
                     .render(row_area[j], buf)
             }
         }
+    }
+}
+
+fn get_color(i: i16) -> Color {
+    match i {
+        2 => Color::Cyan,
+        4 => Color::Blue,
+        8 => Color::LightYellow,
+        16 => Color::Yellow,
+        32 => Color::LightRed,
+        64 => Color::Red,
+        128 => Color::LightGreen,
+        256 => Color::Green,
+        512 => Color::LightMagenta,
+        1024 => Color::Magenta,
+        2048 => Color::Black,
+        _ => Color::White,
     }
 }
