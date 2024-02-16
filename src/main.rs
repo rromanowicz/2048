@@ -1,4 +1,4 @@
-use std::{error::Error, io::stdout};
+use std::{env, error::Error, io::stdout};
 
 use color_eyre::config::HookBuilder;
 use crossterm::{
@@ -13,9 +13,19 @@ mod app;
 mod board;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let mut size: u16 = 4;
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1 {
+        size = args[1]
+            .parse::<i32>()
+            .expect("Not a number.")
+            .try_into()
+            .unwrap();
+    }
+
     init_error_hooks()?;
     let terminal = init_terminal()?;
-    App::new().run(terminal)?;
+    App::new(size).run(terminal)?;
     restore_terminal()?;
 
     Ok(())

@@ -13,46 +13,23 @@ pub enum Direction {
 pub struct Board {
     pub items: Vec<Vec<i16>>,
     modified: bool,
+    size: u16,
 }
 
 impl Board {
     fn transposed(&mut self) -> Board {
         return Board {
-            items: vec![
-                vec![
-                    self.items[0][0],
-                    self.items[1][0],
-                    self.items[2][0],
-                    self.items[3][0],
-                ],
-                vec![
-                    self.items[0][1],
-                    self.items[1][1],
-                    self.items[2][1],
-                    self.items[3][1],
-                ],
-                vec![
-                    self.items[0][2],
-                    self.items[1][2],
-                    self.items[2][2],
-                    self.items[3][2],
-                ],
-                vec![
-                    self.items[0][3],
-                    self.items[1][3],
-                    self.items[2][3],
-                    self.items[3][3],
-                ],
-            ],
+            items: transpose(&self.items),
             modified: false,
+            size: self.size,
         };
     }
 
     fn add_random(&mut self, is_override: bool) {
         if self.modified || is_override {
             loop {
-                let x = rand::thread_rng().gen_range(0..3);
-                let y = rand::thread_rng().gen_range(0..3);
+                let x = rand::thread_rng().gen_range(0..(self.size - 1).into());
+                let y = rand::thread_rng().gen_range(0..(self.size - 1).into());
                 if self.items[x][y] == 0 {
                     let rng = rand::thread_rng().gen_range(0..100);
                     self.items[x][y] = [2, 4][if rng < 80 { 0 } else { 1 }];
@@ -65,10 +42,11 @@ impl Board {
 }
 
 impl Board {
-    pub fn new() -> Self {
+    pub fn new(s: u16) -> Self {
         let mut matrix = Self {
-            items: vec![vec![0; 4]; 4],
+            items: vec![vec![0; s.into()]; s.into()],
             modified: false,
+            size: s,
         };
         matrix.add_random(true);
         matrix.add_random(true);
@@ -194,4 +172,16 @@ fn join_pairs_left(row: &mut [i16]) -> bool {
         }
     }
     return modified;
+}
+
+fn transpose(src: &Vec<Vec<i16>>) -> Vec<Vec<i16>> {
+    let mut result: Vec<Vec<i16>> = src.iter().map(|it| vec![1; it.len()]).collect();
+
+    for i in 0..src.len() {
+        for j in 0..src[i].len() {
+            result[j][i] = src[i][j];
+        }
+    }
+
+    return result;
 }

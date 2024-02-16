@@ -16,12 +16,14 @@ use crate::board::{self, Board, Direction};
 
 pub struct App {
     board: Board,
+    size: u16,
 }
 
 impl App {
-    pub fn new<'a>() -> App {
+    pub fn new<'a>(s: u16) -> App {
         return App {
-            board: Board::new(),
+            board: Board::new(s),
+            size: s,
         };
     }
 }
@@ -47,7 +49,7 @@ impl App {
     }
 
     fn draw(&mut self, terminal: &mut Terminal<impl Backend>) -> io::Result<()> {
-        let square_size = 40;
+        let square_size = self.size * 10;
         let h_borders = Layout::horizontal([
             Constraint::Fill(1),
             Constraint::Length(square_size),
@@ -66,18 +68,16 @@ impl App {
 
 impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let h_layout = Layout::horizontal([
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-        ]);
-        let v_layout = Layout::vertical([
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-        ]);
+        let h_layout = Layout::horizontal(
+            (0..self.size)
+                .map(|it| Constraint::Percentage(100 / self.size))
+                .collect::<Vec<Constraint>>(),
+        );
+        let v_layout = Layout::vertical(
+            (0..self.size)
+                .map(|it| Constraint::Percentage(100 / self.size))
+                .collect::<Vec<Constraint>>(),
+        );
 
         let rows = v_layout.split(area);
 
