@@ -55,19 +55,27 @@ impl App {
             Constraint::Length(square_size),
             Constraint::Fill(1),
         ]);
-        let v_borders = Layout::vertical([Constraint::Length(square_size / 2)]);
+        let v_borders = Layout::vertical([Constraint::Length(square_size / 2 + 3)]);
         let [left, h_middle, right] = h_borders.areas(terminal.size()?);
         let [v_middle] = v_borders.areas(h_middle);
 
         terminal.draw(|f| {
             f.render_widget(self, v_middle);
         })?;
+
         Ok(())
+    }
+
+    fn render_footer(&self, area: Rect, buf: &mut Buffer) {
+        Paragraph::new("\n←↓↑→ / hjkl to move, 'q' to quit")
+            .centered()
+            .render(area, buf);
     }
 }
 
 impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        let main_split = Layout::vertical([Constraint::Fill(1), Constraint::Length(3)]);
         let h_layout = Layout::horizontal(
             (0..self.size)
                 .map(|it| Constraint::Percentage(100 / self.size))
@@ -79,7 +87,9 @@ impl Widget for &mut App {
                 .collect::<Vec<Constraint>>(),
         );
 
-        let rows = v_layout.split(area);
+        let [main_area, footer_area] = main_split.areas(area);
+
+        let rows = v_layout.split(main_area);
 
         for i in 0..self.board.items.len() {
             let row_area = h_layout.split(rows[i]);
@@ -101,6 +111,8 @@ impl Widget for &mut App {
                     .render(row_area[j], buf)
             }
         }
+
+        self.render_footer(footer_area, buf);
     }
 }
 
